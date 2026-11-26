@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>땅따먹기 대결 | Land Grab Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 배경 장식 요소 -->
+  <div class="bg-decor" aria-hidden="true">
+    <span class="cloud cloud-1"></span>
+    <span class="cloud cloud-2"></span>
+    <span class="cloud cloud-3"></span>
+  </div>
+
+  <!-- 승리 축하 폭죽 캔버스 -->
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- 땅따먹기 인트로 화면 -->
+  <section id="intro-screen" class="intro-screen" aria-label="게임 인트로 화면">
+    <div class="intro-card">
+      <div class="intro-top-badge">🚩 VS AI TERRITORY BATTLE</div>
+
+      <!-- 미니 3×3 땅따먹기 애니메이션 보드 -->
+      <div class="intro-mini-board" aria-hidden="true">
+        <span class="mini-tile blue t1">⭐</span>
+        <span class="mini-tile blue t2">⭐</span>
+        <span class="mini-tile neutral t3"></span>
+        <span class="mini-tile blue t4">⭐</span>
+        <span class="mini-tile orange t5">🤖</span>
+        <span class="mini-tile orange t6">🤖</span>
+        <span class="mini-tile neutral t7"></span>
+        <span class="mini-tile orange t8">🤖</span>
+        <span class="mini-tile blue t9">⭐</span>
+      </div>
+
+      <h1 class="intro-title">땅따먹기 대결</h1>
+      <p class="intro-subtitle">
+        파랑(⭐)과 주황(🤖)의 짜릿한 영토 쟁탈전!<br />
+        더 넓게 연결해 최고의 땅 주인이 되어 보세요.
+      </p>
+
+      <ul class="intro-features" aria-label="게임 특징">
+        <li><span class="feat-icon">🎲</span><span>매 판 무작위 선공 추첨</span></li>
+        <li><span class="feat-icon">⏱️</span><span>긴장감 넘치는 턴당 10초 제한</span></li>
+        <li><span class="feat-icon">✨</span><span>영토 연결 보너스 &amp; 3단계 난이도</span></li>
+      </ul>
+
+      <button id="enter-game-btn" class="intro-enter-btn" type="button">
+        <span>🚀 게임 입장하기</span>
+      </button>
+    </div>
+  </section>
+
+  <main class="app-container">
+    <!-- 상단 헤더 -->
+    <header class="game-header">
+      <div class="title-wrap">
+        <span class="title-badge">VS AI</span>
+        <h1 class="game-title">땅따먹기 대결</h1>
+      </div>
+      <div class="header-actions">
+        <button id="home-btn" class="icon-btn" type="button" aria-label="인트로 화면으로" title="인트로 화면으로">
+          🏠
+        </button>
+        <button id="sound-toggle" class="icon-btn" type="button" aria-label="효과음 켜기/끄기" title="효과음 켜기/끄기">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- 점수판 영역 -->
+    <section class="scoreboard" aria-label="현재 점수">
+      <div id="player-card" class="score-card player-card active-turn">
+        <div class="score-avatar" aria-hidden="true">⭐</div>
+        <div class="score-info">
+          <div class="score-label-row">
+            <span class="score-label">나 (사용자)</span>
+            <span id="player-order-badge" class="order-badge">선공</span>
+          </div>
+          <div class="score-value-wrap">
+            <span id="player-score" class="score-value">0</span>
+            <span class="score-unit">점</span>
+          </div>
+          <span id="player-breakdown" class="score-breakdown">칸 0 · 연결 0</span>
+        </div>
+        <span class="turn-pill">내 차례!</span>
+      </div>
+
+      <div class="vs-badge" aria-hidden="true">VS</div>
+
+      <div id="computer-card" class="score-card computer-card">
+        <div class="score-avatar" aria-hidden="true">🤖</div>
+        <div class="score-info">
+          <div class="score-label-row">
+            <span class="score-label">컴퓨터</span>
+            <span id="computer-order-badge" class="order-badge">후공</span>
+          </div>
+          <div class="score-value-wrap">
+            <span id="computer-score" class="score-value">0</span>
+            <span class="score-unit">점</span>
+          </div>
+          <span id="computer-breakdown" class="score-breakdown">칸 0 · 연결 0</span>
+        </div>
+        <span class="turn-pill">생각 중...</span>
+      </div>
+    </section>
+
+    <!-- 영역 점유율 바 & 남은 칸 표시 -->
+    <section class="territory-section" aria-label="영역 점유 현황 및 제한시간">
+      <div class="territory-bar">
+        <div id="player-bar" class="bar-fill player-fill" style="width: 0%"></div>
+        <div id="computer-bar" class="bar-fill computer-fill" style="width: 0%"></div>
+      </div>
+      <div class="timer-row" aria-label="턴 제한시간">
+        <div class="timer-label-wrap">
+          <span class="timer-icon" aria-hidden="true">⏱️</span>
+          <span id="timer-owner-label" class="timer-owner-label">내 차례 남은 시간</span>
+        </div>
+        <span id="turn-timer-text" class="timer-text">10.0초</span>
+      </div>
+      <div class="timer-track" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="10" aria-label="턴 남은 시간 진행 막대">
+        <div id="turn-timer-bar" class="timer-bar-fill" style="width: 100%"></div>
+      </div>
+      <div class="status-row">
+        <p id="status-message" class="status-message" role="status" aria-live="polite">
+          빈 칸을 클릭해서 내 땅을 만들어 보세요!
+        </p>
+        <span id="remaining-badge" class="remaining-badge">남은 칸: 25</span>
+      </div>
+    </section>
+
+    <!-- 게임판 영역 -->
+    <section class="board-wrapper" aria-label="땅따먹기 게임판">
+      <div id="game-board" class="game-board" role="grid"></div>
+
+      <!-- 파티클·플로팅 텍스트 효과 레이어 -->
+      <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+
+      <!-- 선공 추첨 / 이벤트 알림 배너 -->
+      <div id="turn-banner" class="turn-banner hidden" aria-hidden="true"></div>
+
+      <!-- 게임 시작 대기 오버레이 -->
+      <div id="board-start-overlay" class="start-overlay">
+        <div class="start-overlay-card">
+          <div class="start-overlay-emoji" aria-hidden="true">🎮</div>
+          <p id="start-overlay-desc" class="start-overlay-desc">
+            준비가 되면 시작 버튼을 눌러주세요!
+          </p>
+          <button id="start-game-btn" class="start-game-btn" type="button">
+            <span>▶ 게임 시작</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 옵션 및 다시 시작 컨트롤 -->
+    <section class="controls-panel" aria-label="게임 설정 및 제어">
+      <div class="options-row">
+        <div class="option-group" role="group" aria-label="게임판 크기 선택">
+          <span class="option-label">판 크기</span>
+          <div class="segmented-control">
+            <button type="button" class="seg-btn" data-size="4">4×4</button>
+            <button type="button" class="seg-btn active" data-size="5">5×5</button>
+            <button type="button" class="seg-btn" data-size="6">6×6</button>
+          </div>
+        </div>
+
+        <div class="option-group" role="group" aria-label="게임 모드 선택">
+          <span class="option-label">규칙</span>
+          <div class="segmented-control">
+            <button type="button" class="seg-btn active" data-mode="classic" title="번갈아 1칸씩 차지하기">기본</button>
+            <button type="button" class="seg-btn" data-mode="capture" title="상대 칸을 양쪽에서 감싸면 내 땅으로 변환!">포위전</button>
+          </div>
+        </div>
+
+        <div class="option-group option-group-full" role="group" aria-label="컴퓨터 난이도 선택">
+          <span class="option-label">난이도</span>
+          <div class="segmented-control">
+            <button type="button" class="seg-btn" data-difficulty="easy">쉬움</button>
+            <button type="button" class="seg-btn active" data-difficulty="normal">보통</button>
+            <button type="button" class="seg-btn" data-difficulty="hard">어려움</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="restart-btn" class="restart-btn" type="button">
+        <span class="btn-icon" aria-hidden="true">🔄</span>
+        <span>처음부터 다시 시작</span>
+      </button>
+    </section>
+
+    <!-- 간단한 규칙 안내 -->
+    <footer class="game-footer">
+      <p id="mode-hint" class="mode-hint">
+        💡 빈 칸을 누르면 내 땅(파랑), 이어서 컴퓨터가 랜덤으로 땅(코랄)을 차지해요!
+      </p>
+    </footer>
+  </main>
+
+  <!-- 게임 종료 결과 모달 -->
+  <div id="result-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="modal-card">
+      <div id="result-emoji" class="result-emoji" aria-hidden="true">🏆</div>
+      <h2 id="result-title" class="result-title">승리했어요!</h2>
+      <p id="result-subtitle" class="result-subtitle">멋진 땅따먹기 대결이었어요!</p>
+
+      <div class="result-scores">
+        <div class="result-score-box player">
+          <span id="final-player-label" class="rs-label">⭐ 나</span>
+          <span id="final-player-score" class="rs-num">0점</span>
+          <span id="final-player-detail" class="rs-detail">칸 0 + 연결 0</span>
+        </div>
+        <div class="result-vs">:</div>
+        <div class="result-score-box computer">
+          <span id="final-computer-label" class="rs-label">🤖 컴퓨터</span>
+          <span id="final-computer-score" class="rs-num">0점</span>
+          <span id="final-computer-detail" class="rs-detail">칸 0 + 연결 0</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modal-restart-btn" class="primary-btn" type="button">🔄 다시 도전하기</button>
+        <button id="modal-close-btn" class="secondary-btn" type="button">게임판 보기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
